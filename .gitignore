@@ -1,0 +1,5 @@
+.pytest_cache/*
+html_test_result/*
+__pycache__/*
+.idea/*
+.coverage
