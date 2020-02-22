@@ -1,5 +1,9 @@
 .pytest_cache/*
 html_test_result/*
-__pycache__/*
+__pycache__
 .idea/*
 .coverage
+apibank/__pycache__/*
+*.pyc
+coverage/*
+config.env

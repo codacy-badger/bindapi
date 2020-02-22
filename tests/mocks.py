@@ -138,3 +138,32 @@ APIBANK_DEBIN_MOCK = {
         }
     }
 }
+
+APIBANK_DEBIN_SUBSCRIPTION_MOCK = {
+    "id": "1511443312312321321213092984",
+    "type": "DEBIN_SUBSCRIPTION",
+    "details": {
+        "origin_id": "556677",
+        "concept": "EXP",
+        "description": "A description for this subscription",
+        "provision": "Prestacion 1",
+        "provision_reference" : "Numero de documento",
+        "buyer": {
+            "alias": "aliasCBU",
+        }
+    },
+    "transaction_ids": [
+        "15114433092984",
+        "0"
+    ],
+    "status": "ACTIVE",
+    "start_date": "2018-04-12T18:53:29.269Z",
+    "end_date": "2018-04-12T18:53:29.269Z",
+    "challenge": None,
+    "charge": {
+        "summary": "COMPLETE",
+        "value": {
+            "currency": "ARS"
+        }
+    }
+}

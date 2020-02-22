@@ -1,0 +1,6 @@
+[run]
+omit =
+    app.py
+    tests/*
+    apibank/__init__.py
+    apibank/config.py

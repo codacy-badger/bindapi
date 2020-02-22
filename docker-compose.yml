@@ -1,0 +1,19 @@
+version: "3.7"
+
+services:
+  redis:
+    image: redis:5-alpine
+  bindapi:
+    environment:
+      - FLASK_ENV=development #change this if your plan is use docker-compose on some prod environment/deployment
+    build: ./
+    image: bind_api:webservice
+    ports:
+      - "8080:80"
+    depends_on:
+      - redis
+    # uncomment the following line if you want to use live-reload
+    #volumes:
+    #  - .:/app/
+    env_file:
+      - config.env

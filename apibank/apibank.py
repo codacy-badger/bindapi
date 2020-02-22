@@ -1,9 +1,11 @@
+import os
 import time
 import requests
 
 from .helpers import multi_replace_regex
 from .url_constants import APIBANK_LOGIN_URL, APIBANK_TX_QUERY_URL, APIBANK_TX_CREATE_URL, APIBANK_ACC_QUERY_URL, \
-    APIBANK_DEBIN_CREATE_URL, APIBANK_DEBIN_QUERY_URL
+    APIBANK_DEBIN_CREATE_URL, APIBANK_DEBIN_QUERY_URL, APIBANK_DEBIN_SUBSCRIPTION_CREATE_URL, \
+    APIBANK_DEBIN_SUBSCRIPTION_QUERY_URL
 
 
 class BindToken:
@@ -29,15 +31,15 @@ class BindToken:
 class BindAPIClient:
     token = None
 
-    def __init__(self, account_id="21-1-99999-4-6"):
-        self.account_id = account_id
+    def __init__(self, account_id=None):
+        self.account_id = os.getenv('BINDAPI_DEFAULT_ACCOUNT', account_id)
 
     def build_token(self):
         if self.token is None or not self.token.is_valid():
             created_at = time.time()
             response = requests.post(APIBANK_LOGIN_URL, json={
-                "username": "federico@xeta.com.ar",
-                "password": "OgIGyehigOOGqSR"
+                "username": os.getenv('BINDAPI_USERNAME', None),
+                "password": os.getenv('BINDAPI_PASSWORD', None)
             })
             if response.status_code == 200:
                 self.token = BindToken(response.json(), created_at)
@@ -50,50 +52,19 @@ class BindAPIClient:
         response_data = response.json()
 
         if response.status_code != 200:
-            raise Exception("Error code {0}: {1}".format(response_data["code"], response_data["message"]))
-        else:
-            if url_to_parse == APIBANK_TX_QUERY_URL:
-                response_data = list(map(lambda tx: {
-                    "id": tx["id"],
-                    "cuil": tx["counterparty"]["id"],
-                    "amount": tx["charge"]["value"]["amount"],
-                    "currency": tx["charge"]["value"]["currency"]
-                }, response_data))
-            elif url_to_parse == APIBANK_TX_CREATE_URL:
-                response_message = "Transferencia exitosa" if response_data["status"] == "COMPLETED" \
-                    else "Transferencia rechazada"
-                response_data = {"message": response_message}
-            elif url_to_parse == APIBANK_ACC_QUERY_URL:
-                response_data = {
-                    "cbu": response_data["account_routing"]["address"],
-                    "alias": "",
-                    "currency": response_data["currency"],
-                    "cuil": response_data["owners"][0]["id"],
-                    "bank_name": response_data["bank_routing"]["address"],
-                    "fullname": response_data["owners"][0]["display_name"],
-                }
-            elif url_to_parse == APIBANK_DEBIN_CREATE_URL:
-                response_data = {
-                    "id": response_data["id"],
-                    "message": "Pedido de DEBIN creado" if response_data["status"] in ["PENDING"]
-                                                        else "Pedido de DEBIN NO creado"
-                }
-            elif url_to_parse == APIBANK_DEBIN_QUERY_URL:
-                response_data = {
-                    "completed": True if response_data["status"] in ["COMPLETED", "ACREDITADO"] else False
-                }
-            else:
-                response_data = {"message": "Invalid url"}
-            return response_data
+            # in case of some unhandled error which we want to parse... do it here.
+            pass
+
+        return response_data
 
     def get_transfers(self):
         self.build_token()
 
         return self.handle_response(
             requests.get(
-                APIBANK_TX_QUERY_URL.replace(":account_id", self.account_id),
+                APIBANK_TX_QUERY_URL,
                 headers=self.token.auth_header({"obp_status": "COMPLETED"})
-            ), url_to_parse=APIBANK_TX_QUERY_URL
+            )
         )
 
     def create_transfer(self, cbu, amount, currency="ARS"):
@@ -112,10 +83,10 @@ class BindAPIClient:
 
         return self.handle_response(
             requests.post(
-                APIBANK_TX_CREATE_URL.replace(":account_id", self.account_id),
+                APIBANK_TX_CREATE_URL,
                 headers=self.token.auth_header(),
                 json=payload
-            ), url_to_parse=APIBANK_TX_CREATE_URL
+            )
         )
 
     def account_detail(self, account, account_type="cbu"):
@@ -125,12 +96,12 @@ class BindAPIClient:
             ":account_type": account_type,
             ":account_nro": account
         }
-        print(multi_replace_regex(APIBANK_ACC_QUERY_URL, query_params))
+
         return self.handle_response(
             requests.get(
                 multi_replace_regex(APIBANK_ACC_QUERY_URL, query_params),
                 headers=self.token.auth_header()
-            ), url_to_parse=APIBANK_ACC_QUERY_URL
+            )
         )
 
     def create_debin(self, cbu, amount, currency="ARS"):
@@ -149,22 +120,54 @@ class BindAPIClient:
         }
         return self.handle_response(
             requests.post(
-                APIBANK_DEBIN_CREATE_URL.replace(":account_id", self.account_id),
+                APIBANK_DEBIN_CREATE_URL,
                 headers=self.token.auth_header(),
                 json=payload
-            ), url_to_parse=APIBANK_DEBIN_CREATE_URL
+            )
         )
 
     def get_debin(self, debin_id):
         self.build_token()
 
-        query_params = {
-            ":account_id": self.account_id,
-            ":transaction_id": debin_id
-        }
         return self.handle_response(
             requests.get(
-                multi_replace_regex(APIBANK_DEBIN_QUERY_URL, query_params),
+                APIBANK_DEBIN_QUERY_URL.replace(":transaction_id", debin_id),
                 headers=self.token.auth_header()
-            ), url_to_parse=APIBANK_DEBIN_QUERY_URL
+            )
+        )
+
+    def create_debin_subscription(self, account_type, account_nro, description, provision, provision_reference,
+                                  currency="ARS", concept="VAR"):
+        if account_type not in ["cbu", "alias"]:
+            return {"code": "ER001", "message": "Invalid account_type. Check your request parameters."}
+
+        payload = {
+            "to": {"cbu": account_nro} if account_type == "cbu" else {"label": account_nro},
+            "value": {
+                "currency": currency
+            },
+            "description": description,
+            "concept": concept,
+            "provision": provision,
+            "provision_reference": provision_reference,
+            "active": "true"
+        }
+        self.build_token()
+
+        return self.handle_response(
+            requests.post(
+                APIBANK_DEBIN_SUBSCRIPTION_CREATE_URL,
+                headers=self.token.auth_header(),
+                json=payload
+            )
+        )
+
+    def get_debin_subscription(self, transaction_id):
+        self.build_token()
+
+        return self.handle_response(
+            requests.get(
+                APIBANK_DEBIN_SUBSCRIPTION_QUERY_URL.replace(":transaction_id", transaction_id),
+                headers=self.token.auth_header()
+            )
         )

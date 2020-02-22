@@ -10,11 +10,7 @@ RUN apt-get -y install \
 
 WORKDIR /app
 
-COPY requirements.txt /app/requirements.txt
-COPY apibank/* /app/apibank/
-COPY app.py /app/app.py
-COPY startup.sh /app/startup.sh
-COPY uwsgi.ini /app/uwsgi.ini
+COPY . /app/
 COPY nginx.conf /etc/nginx
 
 RUN pip install -r requirements.txt --src /usr/local/src

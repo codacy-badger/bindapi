@@ -1,0 +1,11 @@
+.pytest_cache/*
+html_test_result/*
+__pycache__/*
+.idea/*
+.coverage
+apibank/__pycache__/*
+.git
+.pytest_cache
+.gitignore
+README.md
+Dockerfile

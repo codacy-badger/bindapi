@@ -1,0 +1,64 @@
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: bindapi-rest-service
+spec:
+  selector:
+    matchLabels:
+      app: bindapi-rest-service
+      tier: frontend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: bindapi-rest-service
+        tier: frontend
+    spec:
+      imagePullSecrets:
+        - name: awsecr-cred
+      containers:
+      - name: bindapi-service
+        image: 966893360685.dkr.ecr.us-west-2.amazonaws.com/bindapi:1.0
+        imagePullPolicy: Always
+        env:
+        - name: GET_HOSTS_FROM
+          value: dns
+        - name: BINDAPI_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: bindapi-secret
+              key: BINDAPI_USERNAME
+        - name: BINDAPI_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: bindapi-secret
+              key: BINDAPI_PASSWORD
+        - name: BINDAPI_DEFAULT_ACCOUNT
+          valueFrom:
+            secretKeyRef:
+              name: bindapi-secret
+              key: BINDAPI_DEFAULT_ACCOUNT
+        ports:
+        - containerPort: 80
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels:
+    app: bindapi-rest-service
+    tier: frontend
+spec:
+  # comment or delete the following line if you want to use a LoadBalancer
+  #type: NodePort
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 80
+  selector:
+    app: bindapi-rest-service
+    tier: frontend

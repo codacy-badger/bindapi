@@ -1,0 +1,10 @@
+secretGenerator:
+- name: bindapi-secret
+  literals:
+  - BINDAPI_USERNAME=username@email.com
+  - BINDAPI_PASSWORD=this_is_a_password
+  - BINDAPI_DEFAULT_ACCOUNT=XX-X-XXXXX-X-X
+resources:
+  - redis-deployment.yaml
+  - api-service-deployment.yaml
+  - cluster-autoscaler-autodiscover.yaml
