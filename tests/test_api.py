@@ -358,7 +358,7 @@ def test_get_debin_subscription(client):
         assert len(response.json) == 9
         assert len(response.json["transaction_ids"]) == 2
 
-
+@responses.activate
 def test_unexistent_api_method(client):
     api_client = BindAPIClient()
     response = api_client.call("wrong_method")
