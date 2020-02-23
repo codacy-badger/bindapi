@@ -1,0 +1,26 @@
+# This is a sample build configuration for Python.
+# Check our guides at https://confluence.atlassian.com/x/x4UWN for more examples.
+# Only use spaces to indent your .yml configuration.
+# -----
+# You can specify a custom docker image from Docker Hub as your build environment.
+image: python:3.7
+
+pipelines:
+  default:
+    - step:
+        name: Deploy & test
+        deployment: test
+        caches:
+          - pip
+        script:
+          - apt-get update && apt-get install -y
+          - pip install -r requirements.txt
+          - pip install codecov
+          - apt-get install -y jq
+          - export CODACY_PROJECT_TOKEN=4f898a85121a49878c9789e50b165045
+          - codecov --token=2602315e-a917-476d-a1f5-4bac93bc9dee
+          - pytest --cov-report=term --cov-report=xml:test-results/coverage.xml
+          - LATEST_VERSION="$(curl -Ls https://api.bintray.com/packages/codacy/Binaries/codacy-coverage-reporter/versions/_latest | jq -r .name)"
+          - curl -Ls -o codacy-coverage-reporter "https://dl.bintray.com/codacy/Binaries/${LATEST_VERSION}/codacy-coverage-reporter-linux"
+          - chmod +x codacy-coverage-reporter
+          - ./codacy-coverage-reporter report -l Python -r ./test-results/coverage.xml

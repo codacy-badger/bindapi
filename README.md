@@ -1,5 +1,7 @@
 ## BIND ApiBank Rest Service
-
+[![codecov](https://codecov.io/bb/INCLUFIN_GIT/bindapi/branch/master/graph/badge.svg?token=BPJHU1ODPL)](https://codecov.io/bb/INCLUFIN_GIT/bindapi)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/ac9723f2c59940ee8fe7f8ea5c7de545)](https://www.codacy.com?utm_source=bitbucket.org&amp;utm_medium=referral&amp;utm_content=INCLUFIN_GIT/bindapi&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://api.codacy.com/project/badge/Coverage/ac9723f2c59940ee8fe7f8ea5c7de545)](https://www.codacy.com?utm_source=bitbucket.org&amp;utm_medium=referral&amp;utm_content=INCLUFIN_GIT/bindapi&amp;utm_campaign=Badge_Coverage)
 ---
 ### Pre-Reqs  
 1. Docker: [see offical docs](https://docs.docker.com/install/)
