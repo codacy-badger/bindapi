@@ -71,7 +71,6 @@ def test_make_transfer(client):
         response = client.post("/transfer", json=json_body)
         assert response.status_code == 200
         assert len(response.json) == 11
-
         assert response.json["id"] == APIBANK_TX_CREATE_MOCK["id"]
         assert response.json["status"] == "COMPLETED"
         assert response.json["status"] == APIBANK_TX_CREATE_MOCK["status"]
@@ -259,8 +258,6 @@ def test_parse_handle_error():
     custom_response = CustomResponse()
 
     response = client.handle_response(custom_response, url_to_parse="http://wrong_url.com")
-
-
     custom_response.status_code = 200
     assert response["code"] == custom_response.json()["code"]
     assert response["message"] == custom_response.json()["message"]
@@ -313,7 +310,7 @@ def test_create_debin_subscription(client):
 
 
 @responses.activate
-def test_create_debin_subscription_w_accountType_error(client):
+def test_create_debin_subscription_w_accounttype_error(client):
     json_body = {
         "account_type": "WRONG-ACCOUNT-TYPE",
         "account_nro": "aliasCBU",
@@ -360,3 +357,11 @@ def test_get_debin_subscription(client):
         assert response.status_code == 200
         assert len(response.json) == 9
         assert len(response.json["transaction_ids"]) == 2
+
+
+def test_unexistent_api_method(client):
+    api_client = BindAPIClient()
+    response = api_client.call("wrong_method")
+    assert response.status_code == 200
+    assert response.json["code"] == "ERR404"
+    assert response.json["message"] == "Method doesn't exists. Check your call."

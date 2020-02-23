@@ -1,6 +1,7 @@
 import os
 import time
 import requests
+from flask import jsonify, make_response
 
 from .helpers import multi_replace_regex
 from .url_constants import APIBANK_LOGIN_URL, APIBANK_TX_QUERY_URL, APIBANK_TX_CREATE_URL, APIBANK_ACC_QUERY_URL, \
@@ -11,6 +12,11 @@ from .url_constants import APIBANK_LOGIN_URL, APIBANK_TX_QUERY_URL, APIBANK_TX_C
 class BindToken:
 
     def __init__(self, data, created_at=None):
+        """
+        Instantiates a BIND apibank client token
+
+        :rtype: None
+        """
         self.expiration = data["expires_in"]
         self.token = data["token"]
         self.created_at = time.time() - 5 if created_at is None else created_at
@@ -22,7 +28,7 @@ class BindToken:
         if self.is_valid():
             auth_header = {'Authorization': 'JWT {0}'.format(self.token)}
 
-            if custom_headers and type(custom_headers) is dict:
+            if custom_headers and isinstance(custom_headers, dict):
                 auth_header = {**auth_header, **custom_headers}
             return auth_header
         raise Exception("Token expired: please renew it")
@@ -30,9 +36,6 @@ class BindToken:
 
 class BindAPIClient:
     token = None
-
-    def __init__(self, account_id=None):
-        self.account_id = os.getenv('BINDAPI_DEFAULT_ACCOUNT', account_id)
 
     def build_token(self):
         if self.token is None or not self.token.is_valid():
@@ -49,22 +52,20 @@ class BindAPIClient:
         return self.token
 
     def handle_response(self, response, url_to_parse=None):
-        response_data = response.json()
-
-        if response.status_code != 200:
-            # in case of some unhandled error which we want to parse... do it here.
-            pass
-
+        response_data = response
+        if "json" in dir(response):
+            response_data = response.json()
+            if response.status_code != 200:
+                # in case of some unhandled error which we want to parse... do it here.
+                pass
         return response_data
 
     def get_transfers(self):
         self.build_token()
 
-        return self.handle_response(
-            requests.get(
-                APIBANK_TX_QUERY_URL,
-                headers=self.token.auth_header({"obp_status": "COMPLETED"})
-            )
+        return requests.get(
+            APIBANK_TX_QUERY_URL,
+            headers=self.token.auth_header({"obp_status": "COMPLETED"})
         )
 
     def create_transfer(self, cbu, amount, currency="ARS"):
@@ -81,12 +82,10 @@ class BindAPIClient:
             "concept": "VAR"
         }
 
-        return self.handle_response(
-            requests.post(
-                APIBANK_TX_CREATE_URL,
-                headers=self.token.auth_header(),
-                json=payload
-            )
+        return requests.post(
+            APIBANK_TX_CREATE_URL,
+            headers=self.token.auth_header(),
+            json=payload
         )
 
     def account_detail(self, account, account_type="cbu"):
@@ -97,11 +96,9 @@ class BindAPIClient:
             ":account_nro": account
         }
 
-        return self.handle_response(
-            requests.get(
-                multi_replace_regex(APIBANK_ACC_QUERY_URL, query_params),
-                headers=self.token.auth_header()
-            )
+        return requests.get(
+            multi_replace_regex(APIBANK_ACC_QUERY_URL, query_params),
+            headers=self.token.auth_header()
         )
 
     def create_debin(self, cbu, amount, currency="ARS"):
@@ -118,22 +115,18 @@ class BindAPIClient:
             "concept": "VAR",
             "expiration": 4320  # max value
         }
-        return self.handle_response(
-            requests.post(
-                APIBANK_DEBIN_CREATE_URL,
-                headers=self.token.auth_header(),
-                json=payload
-            )
+        return requests.post(
+            APIBANK_DEBIN_CREATE_URL,
+            headers=self.token.auth_header(),
+            json=payload
         )
 
-    def get_debin(self, debin_id):
+    def get_debin(self, id):
         self.build_token()
 
-        return self.handle_response(
-            requests.get(
-                APIBANK_DEBIN_QUERY_URL.replace(":transaction_id", debin_id),
-                headers=self.token.auth_header()
-            )
+        return requests.get(
+            APIBANK_DEBIN_QUERY_URL.replace(":transaction_id", id),
+            headers=self.token.auth_header()
         )
 
     def create_debin_subscription(self, account_type, account_nro, description, provision, provision_reference,
@@ -154,20 +147,27 @@ class BindAPIClient:
         }
         self.build_token()
 
-        return self.handle_response(
-            requests.post(
-                APIBANK_DEBIN_SUBSCRIPTION_CREATE_URL,
-                headers=self.token.auth_header(),
-                json=payload
-            )
+        return requests.post(
+            APIBANK_DEBIN_SUBSCRIPTION_CREATE_URL,
+            headers=self.token.auth_header(),
+            json=payload
         )
 
     def get_debin_subscription(self, transaction_id):
         self.build_token()
 
-        return self.handle_response(
-            requests.get(
-                APIBANK_DEBIN_SUBSCRIPTION_QUERY_URL.replace(":transaction_id", transaction_id),
-                headers=self.token.auth_header()
-            )
+        return requests.get(
+            APIBANK_DEBIN_SUBSCRIPTION_QUERY_URL.replace(":transaction_id", transaction_id),
+            headers=self.token.auth_header()
         )
+
+    def call(self, method_to_call, **kwargs):
+        self.build_token()
+        try:
+            response = getattr(self, method_to_call)(**kwargs)
+        except Exception as exc:
+            return make_response({
+                "code": "ERR404",
+                "message": "Method doesn't exists. Check your call.",
+                "detail": str(exc)}, 200)
+        return self.handle_response(response)
