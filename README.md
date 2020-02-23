@@ -42,6 +42,7 @@
     5. Run the following command from the source (src) folder:  
         ```flask run```  
     6. Check your service: ```http://localhost:5000```
+
 ---
 ### Production deployment
 
@@ -115,3 +116,12 @@ List services: ```kubectl get services```
 Cluster info: ```kubectl get servicescluster-info```  
 List contexts: ```kubectl config get-contexts```  
 Switch/use context: ```config use-context **[context]**``` 
+
+---
+### Code Quality
+
+#### Coverage map (data layers):
+![Coverage map](https://codecov.io/bb/INCLUFIN_GIT/bindapi/branch/master/graphs/icicle.svg?token=BPJHU1ODPL "Coverage map grid")
+
+#### Commits graph:
+![Commits](https://codecov.io/bb/INCLUFIN_GIT/bindapi/branch/master/graphs/commits.svg?token=BPJHU1ODPL "Commits map")
